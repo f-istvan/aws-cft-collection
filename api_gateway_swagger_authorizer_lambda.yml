@@ -1,0 +1,278 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation sample template that contains a single Lambda function
+  behind an API Gateway based on Swagger secured by an authorizer lambda
+Resources:
+  GreetingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile:
+          Fn::Join:
+          - "\n"
+          - - "'use strict';"
+            - ''
+            - "// Greeter Lambda"
+            - exports.handler = (event, context, callback) => {
+            - "  console.log('Event:', JSON.stringify(event));"
+            - "  const name = event.name || 'World';"
+            - "  const response = {greeting: `Hello, ${name}!`};"
+            - "  callback(null, response);"
+            - "};"
+      Description: A greeting function
+      FunctionName: GreetingLambda
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Runtime: nodejs4.3
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  GreetingApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Greeting API
+      Description: API used for Greeting requests
+      FailOnWarnings: true
+      Body:
+        swagger: '2.0'
+        info:
+          version: '2016-08-17T18:08:34Z'
+          title: Greeting API
+        basePath: "/LATEST"
+        schemes:
+        - https
+        paths:
+          "/greeting":
+            get:
+              parameters:
+              - name: name
+                in: query
+                required: false
+                type: string
+              - name: authorizationToken
+                in: header
+                required: true
+                type: string
+              responses:
+                '200':
+                  description: 200 response
+              security:
+              - LambdaApiGatewayAuthorizer: []
+              x-amazon-apigateway-request-validator: Validate query string parameters
+                and headers
+              x-amazon-apigateway-integration:
+                requestTemplates:
+                  application/json: '{"name": "$input.params(''name'')"}'
+                uri:
+                  Fn::Join:
+                  - ''
+                  - - 'arn:aws:apigateway:'
+                    - Ref: AWS::Region
+                    - ":lambda:path/2015-03-31/functions/"
+                    - Fn::GetAtt:
+                      - GreetingLambda
+                      - Arn
+                    - "/invocations"
+                responses:
+                  default:
+                    statusCode: '200'
+                httpMethod: POST
+                type: aws
+        securityDefinitions:
+          LambdaApiGatewayAuthorizer:
+            type: apiKey
+            name: authorizationToken
+            in: header
+            x-amazon-apigateway-authtype: custom
+            x-amazon-apigateway-authorizer:
+              authorizerUri:
+                Fn::Join:
+                - ''
+                - - 'arn:aws:apigateway:'
+                  - Ref: AWS::Region
+                  - ":lambda:path/2015-03-31/functions/"
+                  - Fn::GetAtt:
+                    - AuthorizerGreetingLambda
+                    - Arn
+                  - "/invocations"
+              authorizerResultTtlInSeconds: 300
+              type: token
+        x-amazon-apigateway-request-validators:
+          Validate query string parameters and headers:
+            validateRequestParameters: true
+            validateRequestBody: false
+  AuthorizerGreetingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile:
+          Fn::Join:
+          - "\n"
+          - - exports.handler =  function(event, context, callback) {
+            - "    var token = event.authorizationToken;"
+            - "    switch (token.toLowerCase()) {"
+            - "        case 'allow':"
+            - "            callback(null, generatePolicy('user', 'Allow', event.methodArn));"
+            - "            break;"
+            - "        case 'deny':"
+            - "            callback(null, generatePolicy('user', 'Deny', event.methodArn));"
+            - "            break;"
+            - "        case 'unauthorized':"
+            - "            callback('Unauthorized');   // Return a 401 Unauthorized
+              response"
+            - "            break;"
+            - "        default:"
+            - "            callback('Error: Invalid token'); "
+            - "    }"
+            - "};"
+            - ''
+            - var generatePolicy = function(principalId, effect, resource) {
+            - "    var authResponse = {};"
+            - "    "
+            - "    authResponse.principalId = principalId;"
+            - "    if (effect && resource) {"
+            - "        var policyDocument = {};"
+            - "        policyDocument.Version = '2012-10-17'; "
+            - "        policyDocument.Statement = [];"
+            - "        var statementOne = {};"
+            - "        statementOne.Action = 'execute-api:Invoke'; "
+            - "        statementOne.Effect = effect;"
+            - "        statementOne.Resource = resource;"
+            - "        policyDocument.Statement[0] = statementOne;"
+            - "        authResponse.policyDocument = policyDocument;"
+            - "    }"
+            - "    "
+            - "    // Optional output with custom properties of the String, Number
+              or Boolean type."
+            - "    authResponse.context = {"
+            - "        'stringKey': 'stringval',"
+            - "        'numberKey': 123,"
+            - "        'booleanKey': true"
+            - "    };"
+            - "    return authResponse;"
+            - "}"
+      Description: An authorizer lambda for greeting function
+      FunctionName: AuthorizerGreetingLambda
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - LambdaExecutionRole
+        - Arn
+      Runtime: nodejs4.3
+  ApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerUri:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:apigateway:'
+          - Ref: AWS::Region
+          - ":lambda:path/2015-03-31/functions/"
+          - Fn::GetAtt:
+            - AuthorizerGreetingLambda
+            - Arn
+          - "/invocations"
+      IdentitySource: method.request.header.authorizationToken
+      Name: ApiGatewayAuthorizer
+      RestApiId:
+        Ref: GreetingApi
+      Type: TOKEN
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - GreetingLambda
+        - Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ":"
+          - Ref: AWS::AccountId
+          - ":"
+          - Ref: GreetingApi
+          - "/*"
+  ApiGatewayCloudWatchLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: ApiGatewayLogsPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            - logs:PutLogEvents
+            - logs:GetLogEvents
+            - logs:FilterLogEvents
+            Resource: "*"
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+        - ApiGatewayCloudWatchLogsRole
+        - Arn
+  GreetingApiStage:
+    DependsOn:
+    - ApiGatewayAccount
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId:
+        Ref: ApiDeployment
+      MethodSettings:
+      - DataTraceEnabled: true
+        HttpMethod: "*"
+        LoggingLevel: INFO
+        ResourcePath: "/*"
+      RestApiId:
+        Ref: GreetingApi
+      StageName: LATEST
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: GreetingApi
+      StageName: DummyStage
+Outputs:
+  RootUrl:
+    Description: Root URL of the API gateway
+    Value:
+      Fn::Join:
+      - ''
+      - - https://
+        - Ref: GreetingApi
+        - ".execute-api."
+        - Ref: AWS::Region
+        - ".amazonaws.com"
