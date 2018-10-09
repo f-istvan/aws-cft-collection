@@ -330,6 +330,34 @@ Resources:
               - 'elasticloadbalancing:RegisterInstancesWithLoadBalancer'
               - 'elasticloadbalancing:RegisterTargets'
             Resource: '*'
+  MyTaskdefinition:
+      Type: AWS::ECS::TaskDefinition
+      Properties:
+        RequiresCompatibilities:
+        - "EC2"
+        ContainerDefinitions:
+        - Name: "dhw"
+          Image: "884819480303.dkr.ecr.us-west-2.amazonaws.com/dhw"
+          PortMappings:
+            -
+              ContainerPort: "8080"
+              HostPort: "0"
+          Memory: "500"
+  WebApp:
+    Type: AWS::ECS::Service
+    DependsOn:
+    - PublicLoadBalancerListener
+    Properties:
+      Cluster:
+        Ref: "ECSCluster"
+      DesiredCount: 2
+      TaskDefinition:
+        Ref: "MyTaskdefinition"
+      LoadBalancers:
+      - TargetGroupArn:
+          Ref: 'DummyTargetGroupPublic'
+        ContainerPort: 8080
+        ContainerName: dhw
 
 # These are the values output by the CloudFormation template. Be careful
 # about changing any of them, because of them are exported with specific
