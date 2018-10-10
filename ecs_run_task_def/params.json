@@ -12,7 +12,11 @@
     "ParameterValue": "ami-00430184c7bb49914"
   },
   {
-    "ParameterKey": "InstanceType",
+    "ParameterKey": "InstanceType1",
+    "ParameterValue": "m3.medium"
+  },
+  {
+    "ParameterKey": "InstanceType2",
     "ParameterValue": "m3.medium"
   }
 ]

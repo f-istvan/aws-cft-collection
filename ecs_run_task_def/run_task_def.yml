@@ -15,8 +15,18 @@ Parameters:
   ECSAMI:
     Description: AMI ID
     Type: String
-  InstanceType:
-    Description: EC2 instance type
+  InstanceType1:
+    Description: EC2 instance type 1
+    Type: String
+    Default: c4.xlarge
+    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
+      m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
+      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
+      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+  InstanceType2:
+    Description: EC2 instance type 2
     Type: String
     Default: c4.xlarge
     AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
@@ -144,13 +154,13 @@ Resources:
 
   # Autoscaling group. This launches the actual EC2 instances that will register
   # themselves as members of the cluster, and run the docker containers.
-  ECSAutoScalingGroup:
+  ECSAutoScalingGroup1:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
         - !Ref PublicSubnetOne
         - !Ref PublicSubnetTwo
-      LaunchConfigurationName: !Ref 'ContainerInstances'
+      LaunchConfigurationName: !Ref 'ContainerInstances1'
       MinSize: '1'
       MaxSize: !Ref 'MaxSize'
       DesiredCapacity: !Ref 'DesiredCapacity'
@@ -160,19 +170,48 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: 'true'
-  ContainerInstances:
+  ContainerInstances1:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       ImageId: !Ref 'ECSAMI'
       SecurityGroups: [!Ref 'EcsHostSecurityGroup']
-      InstanceType: !Ref 'InstanceType'
+      InstanceType: !Ref 'InstanceType1'
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
           echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup1 --region ${AWS::Region}
+  ECSAutoScalingGroup2:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - !Ref PublicSubnetOne
+        - !Ref PublicSubnetTwo
+      LaunchConfigurationName: !Ref 'ContainerInstances2'
+      MinSize: '1'
+      MaxSize: !Ref 'MaxSize'
+      DesiredCapacity: !Ref 'DesiredCapacity'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: 'true'
+  ContainerInstances2:
+      Type: AWS::AutoScaling::LaunchConfiguration
+      Properties:
+        ImageId: !Ref 'ECSAMI'
+        SecurityGroups: [!Ref 'EcsHostSecurityGroup']
+        InstanceType: !Ref 'InstanceType2'
+        IamInstanceProfile: !Ref 'EC2InstanceProfile'
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup2 --region ${AWS::Region}
   AutoscalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -358,6 +397,9 @@ Resources:
           Ref: 'DummyTargetGroupPublic'
         ContainerPort: 8080
         ContainerName: dhw
+      PlacementConstraints:
+        - Type: distinctInstance
+
 
 # These are the values output by the CloudFormation template. Be careful
 # about changing any of them, because of them are exported with specific
