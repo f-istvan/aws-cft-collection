@@ -154,13 +154,13 @@ Resources:
 
   # Autoscaling group. This launches the actual EC2 instances that will register
   # themselves as members of the cluster, and run the docker containers.
-  ECSAutoScalingGroup1:
+  ECSAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
         - !Ref PublicSubnetOne
         - !Ref PublicSubnetTwo
-      LaunchConfigurationName: !Ref 'ContainerInstances1'
+      LaunchConfigurationName: !Ref 'ContainerInstances'
       MinSize: '1'
       MaxSize: !Ref 'MaxSize'
       DesiredCapacity: !Ref 'DesiredCapacity'
@@ -170,7 +170,7 @@ Resources:
     UpdatePolicy:
       AutoScalingReplacingUpdate:
         WillReplace: 'true'
-  ContainerInstances1:
+  ContainerInstances:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       ImageId: !Ref 'ECSAMI'
@@ -182,36 +182,7 @@ Resources:
           #!/bin/bash -xe
           echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
           yum install -y aws-cfn-bootstrap
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup1 --region ${AWS::Region}
-  ECSAutoScalingGroup2:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      VPCZoneIdentifier:
-        - !Ref PublicSubnetOne
-        - !Ref PublicSubnetTwo
-      LaunchConfigurationName: !Ref 'ContainerInstances2'
-      MinSize: '1'
-      MaxSize: !Ref 'MaxSize'
-      DesiredCapacity: !Ref 'DesiredCapacity'
-    CreationPolicy:
-      ResourceSignal:
-        Timeout: PT15M
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: 'true'
-  ContainerInstances2:
-      Type: AWS::AutoScaling::LaunchConfiguration
-      Properties:
-        ImageId: !Ref 'ECSAMI'
-        SecurityGroups: [!Ref 'EcsHostSecurityGroup']
-        InstanceType: !Ref 'InstanceType2'
-        IamInstanceProfile: !Ref 'EC2InstanceProfile'
-        UserData:
-          Fn::Base64: !Sub |
-            #!/bin/bash -xe
-            echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config
-            yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup2 --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ECSAutoScalingGroup --region ${AWS::Region}
   AutoscalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -389,7 +360,7 @@ Resources:
     Properties:
       Cluster:
         Ref: "ECSCluster"
-      DesiredCount: 2
+      DesiredCount: 4
       TaskDefinition:
         Ref: "MyTaskdefinition"
       LoadBalancers:
@@ -397,9 +368,6 @@ Resources:
           Ref: 'DummyTargetGroupPublic'
         ContainerPort: 8080
         ContainerName: dhw
-      PlacementConstraints:
-        - Type: distinctInstance
-
 
 # These are the values output by the CloudFormation template. Be careful
 # about changing any of them, because of them are exported with specific
