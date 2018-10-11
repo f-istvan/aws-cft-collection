@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. bash-arguments.sh
+. cft-arguments.sh
 
 aws cloudformation validate-template --template-body $TEMPLATE
 
