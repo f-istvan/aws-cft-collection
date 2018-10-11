@@ -343,6 +343,9 @@ Resources:
               ContainerPort: "8080"
               HostPort: "0"
           Memory: "500"
+          Environment:
+          - Name: ENV_VAR_DB_LOCATION
+            Value: myDbLocation
   WebApp:
     Type: AWS::ECS::Service
     DependsOn:
@@ -350,6 +353,7 @@ Resources:
     Properties:
       Cluster:
         Ref: "ECSCluster"
+      ServiceName: "myService"
       DesiredCount: 4
       TaskDefinition:
         Ref: "MyTaskdefinition"
