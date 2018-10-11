@@ -113,6 +113,8 @@ Resources:
   # ECS Resources
   ECSCluster:
     Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: myCluster
 
   # A security group for the EC2 hosts that will run the containers.
   # Two rules, allowing network traffic from a public facing load
