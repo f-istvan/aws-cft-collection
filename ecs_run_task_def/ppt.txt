@@ -1,0 +1,32 @@
+- ECR
+-- view push commands
+-- Repository URI + tag
+
+- Task Definitions
+-- JSON
+
+- app
+
+- ECS Service
+-- starts and maintains instances of a task definitions
+From docs: If any of your tasks should fail or stop for any reason, the Amazon ECS service scheduler launches another instance of your task definition to replace it and maintain the desired count of tasks
+
+- Cluster
+-- logical grouping of tasks and services
+-- always specify cluster name (sdk, cli)
+-- Running tasks count (4 task on EC2 instances)
+-- Active service count -> 1
+-- check out the tabs
+
+-- show the app
+--- Load Balancer
+--- env var
+--- port 0
+
+- scripts
+-- stack related
+-- service related (--force-new-deployment) (CI/CD)
+
+- CFT
+-- 6 root nodes
+-- Mappings -> Fn::FindInMap: [ MapName, TopLevelKey, SecondLevelKey ]

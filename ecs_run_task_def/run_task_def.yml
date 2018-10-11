@@ -46,9 +46,6 @@ Mappings:
       CIDR: '10.0.1.0/24'
 Resources:
   # VPC in which containers will be networked.
-  # It has two public subnets
-  # We distribute the subnets across the first two available subnets
-  # for the region, for high availability.
   VPC:
     Type: AWS::EC2::VPC
     Properties:
