@@ -15,18 +15,8 @@ Parameters:
   ECSAMI:
     Description: AMI ID
     Type: String
-  InstanceType1:
-    Description: EC2 instance type 1
-    Type: String
-    Default: c4.xlarge
-    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
-      m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
-      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
-      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
-      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
-    ConstraintDescription: Please choose a valid instance type.
-  InstanceType2:
-    Description: EC2 instance type 2
+  InstanceType:
+    Description: EC2 instance type
     Type: String
     Default: c4.xlarge
     AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
@@ -175,7 +165,7 @@ Resources:
     Properties:
       ImageId: !Ref 'ECSAMI'
       SecurityGroups: [!Ref 'EcsHostSecurityGroup']
-      InstanceType: !Ref 'InstanceType1'
+      InstanceType: !Ref 'InstanceType'
       IamInstanceProfile: !Ref 'EC2InstanceProfile'
       UserData:
         Fn::Base64: !Sub |
