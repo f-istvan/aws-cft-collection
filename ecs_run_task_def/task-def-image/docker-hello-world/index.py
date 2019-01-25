@@ -10,7 +10,7 @@ os.environ['my_var'] = str(randint(0, 999))
 def hello():
     my_var = os.environ['my_var']
     db_location = os.getenv('ENV_VAR_DB_LOCATION', "default value for ENV_VAR_DB_LOCATION")
-    return "Env vars: my var -> " + my_var + ", db_location -> " + db_location
+    return "Env vars: my_var -> " + my_var + ", db_location -> " + db_location
 
 
 if __name__ == "__main__":

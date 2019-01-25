@@ -26,7 +26,7 @@ Resources:
         Fn::GetAtt:
         - LambdaExecutionRole
         - Arn
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -172,7 +172,7 @@ Resources:
         Fn::GetAtt:
         - LambdaExecutionRole
         - Arn
-      Runtime: nodejs4.3
+      Runtime: nodejs8.10
   ApiGatewayAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
